@@ -13,6 +13,19 @@ from parentsquare_mcp.urls import is_attachment_href
 _HASH_PREFIX_RE = re.compile(r"^[a-zA-Z0-9]{16,}_")
 
 
+
+def _post_boxes(feeds_list):
+    """Top-level post boxes inside #feeds-list.
+
+    ParentSquare used to render each post as a direct ``div.ps-box`` child of
+    ``#feeds-list``; it now wraps them in ``ul.feeds-list > li.feeds-list-item``.
+    Search at any depth but skip boxes nested inside another post box.
+    """
+    return [
+        box for box in feeds_list.find_all("div", class_="ps-box")
+        if box.find_parent("div", class_="ps-box") is None
+    ]
+
 def _filename_from_url(url: str) -> str:
     """Extract a human-readable filename from a URL, URL-decoding it."""
     try:
@@ -69,7 +82,7 @@ def parse_feed_page(soup: BeautifulSoup) -> list[FeedPost]:
     if not feeds_list:
         return posts
 
-    for ps_box in feeds_list.find_all("div", class_="ps-box", recursive=False):
+    for ps_box in _post_boxes(feeds_list):
         feed_id_el = ps_box.find("div", id=re.compile(r"^feed_\d+"))
         if not feed_id_el:
             continue

@@ -7,6 +7,19 @@ from bs4 import BeautifulSoup, NavigableString
 from parentsquare_mcp.models import Poll, PollOption
 
 
+
+def _post_boxes(feeds_list):
+    """Top-level post boxes inside #feeds-list.
+
+    ParentSquare used to render each post as a direct ``div.ps-box`` child of
+    ``#feeds-list``; it now wraps them in ``ul.feeds-list > li.feeds-list-item``.
+    Search at any depth but skip boxes nested inside another post box.
+    """
+    return [
+        box for box in feeds_list.find_all("div", class_="ps-box")
+        if box.find_parent("div", class_="ps-box") is None
+    ]
+
 def parse_polls_page(soup: BeautifulSoup) -> list[Poll]:
     """Parse /schools/{id}/polls -> list of Poll.
 
@@ -26,7 +39,7 @@ def parse_polls_page(soup: BeautifulSoup) -> list[Poll]:
     if not feeds_list:
         return polls
 
-    for ps_box in feeds_list.find_all("div", class_="ps-box", recursive=False):
+    for ps_box in _post_boxes(feeds_list):
         feed_id_el = ps_box.find("div", id=re.compile(r"^feed_\d+"))
         if not feed_id_el:
             continue
